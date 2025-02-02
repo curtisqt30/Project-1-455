@@ -1,17 +1,21 @@
-from flask import Flask, render_template
-from flask_socketio import SocketIO
+from flask import Flask, render_template, request, jsonify
+from flask_socketio import SocketIO, emit
+import redis
 
-# Initialize Flask-SocketIO
-sockio = SocketIO()
+app = Flask(__name__)
+socketio = SocketIO(app, cors_allowed_origins="*", message_queue="redis://localhost:6379")
 
-# Active Users Dictionary
-active_users  = {}
+@app.route("/")
+def login_page():
+    return render_template("login.html")
 
-def create_app():
-    app = Flask(__name__)
-    app.config['SECRET_KEY'] = 'secret-key'
-    sockio.init_app(app)
-    return app
+@app.route("/chat")
+def chat_page():
+    return render_template("chat.html")
+
+@socketio.on("connect")
+def handle_connect():
+    print("A client connected")
 
 @socketio.on("message")
 def handle_message(data):
@@ -20,16 +24,9 @@ def handle_message(data):
     print(f"{user}: {msg}")
     emit("message", {"user": user, "msg": msg}, broadcast=True)
 
-@socketio.on("connect")
-def handle_connect():
-    print("Client connected")
-
 @socketio.on("disconnect")
 def handle_disconnect():
-    print("Client disconnected")
+    print("A client disconnected")
 
-if __name__ == '__main__':
-    app = create_app()
+if __name__ == "__main__":
     socketio.run(app, host="0.0.0.0", port=5000)
-    
-    
